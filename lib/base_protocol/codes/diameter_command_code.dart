@@ -1,0 +1,9 @@
+class DiameterCommandCode {
+  static const int DIAMETER_COMMAND_CAPABILITIES_EXCHANGE = 257;
+  static const int DIAMETER_COMMAND_REAUTH = 258;
+  static const int DIAMETER_COMMAND_ACCOUNTING = 271;
+  static const int DIAMETER_COMMAND_ABORT_SESSION = 274;
+  static const int DIAMETER_COMMAND_SESSION_TERMINATION = 275;
+  static const int DIAMETER_COMMAND_DEVICE_WATCHDOG = 280;
+  static const int DIAMETER_COMMAND_DISCONNECT_PEER = 282;
+}
