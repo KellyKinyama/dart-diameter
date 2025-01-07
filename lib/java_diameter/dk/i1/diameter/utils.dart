@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'avp.dart';
+import 'message.dart';
 import 'protocol_constants.dart';
 
 /// A mishmash of handy methods
@@ -193,16 +194,4 @@ class AVPGrouped extends AVP {
 /// Mock InvalidAVPLengthException class
 class InvalidAVPLengthException implements Exception {}
 
-/// Mock Message class
-class Message {
-  List<AVP> avps = [];
 
-  List<AVP> subset(int code) {
-    // Implementation to return subset of AVPs
-    return [];
-  }
-
-  void add(AVP avp) {
-    avps.add(avp);
-  }
-}

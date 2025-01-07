@@ -1,5 +1,11 @@
 import 'dart:async';
 
+import '../message.dart';
+import 'connection_key.dart';
+import 'node_manager.dart';
+import 'node_settings.dart';
+import 'peer.dart';
+
 class SyncCall {
     bool answerReady = false;
     Message? answer;
@@ -81,33 +87,7 @@ class SimpleSyncClient extends NodeManager {
   }
 }
 
-/// Placeholder for NodeManager and other dependent classes.
-class NodeManager {
-  final NodeSettings settings;
 
-  NodeManager(this.settings);
-
-  Future<void> start() async {
-    // Simulated start functionality
-  }
-
-  Future<void> sendRequest(Message request, List<Peer> peers, SyncCall sc, int timeout) async {
-    // Simulated request sending logic
-  }
-
-  Future<void> initiateConnection(Peer p, bool flag) async {
-    // Simulated connection initiation
-  }
-
-  dynamic node() {
-    // Return an instance of the node object
-    return this;
-  }
-}
-
-class Peer {}
-class Message {}
-class ConnectionKey {}
 class NotRoutableException implements Exception {}
 class InterruptedException implements Exception {}
 class NotARequestException implements Exception {}
@@ -116,6 +96,4 @@ void synchronized(SyncCall sc, Future<void> Function() body) async {
   // Simulated synchronized function using Future
   await body();
 }
-
-class NodeSettings {}
 
