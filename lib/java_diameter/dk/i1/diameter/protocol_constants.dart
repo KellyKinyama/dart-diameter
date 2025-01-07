@@ -1,4 +1,9 @@
-class ProtocolConstants {
+
+
+/**
+ * A bunch of constants from RFC3588, RFC4005, RFC4006 and RFC4072.
+ */
+final class ProtocolConstants {
 //Applications (section 2.4)
 static final int DIAMETER_APPLICATION_COMMON = 0;
 static final int DIAMETER_APPLICATION_NASREQ = 1;

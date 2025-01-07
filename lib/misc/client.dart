@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
 
+import 'package:dart_diameter/misc/parser.dart';
+
 class DiameterClient {
   final String serverAddress;
   final int serverPort;
