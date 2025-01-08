@@ -7,14 +7,15 @@ class InvalidAVPLengthException implements Exception {
   InvalidAVPLengthException(this.avp);
 }
 
+// ignore: camel_case_types
 class AVP_Unsigned32 extends AVP {
-  AVP_Unsigned32(AVP a) : super(a) {
+  AVP_Unsigned32(AVP a) : super(Uint8List(4)) {
     if (a.queryPayloadSize() != 4) {
       throw InvalidAVPLengthException(a);
     }
   }
 
-  AVP_Unsigned32.intValue(int code, int value) : super(code, _intToByte(value));
+  AVP_Unsigned32.intValue(int code, int value) : super( Uint8List.fromList(_intToByte(value)));
 
   AVP_Unsigned32.vendorValue(int code, int vendorId, int value)
       : super.withVendor(code, vendorId, Uint8List.fromList(_intToByte(value)));
@@ -42,4 +43,11 @@ class AVP_Unsigned32 extends AVP {
         .setInt32(offset, value, Endian.big);
     return data;
   }
+
+  // Constructor to initialize with a vendor ID
+  AVP_Unsigned32.withVendor(int code, int vendorId, int value)
+      : super.withVendor(code, vendorId, Uint8List.fromList([value]));
+
+  // Constructor to initialize with an integer value
+  //AVP_Unsigned32.intValue(int code, int value) : super.withPayload(code, [value]);
 }

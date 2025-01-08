@@ -72,7 +72,7 @@ class Message {
       var avpSize = AVP.decodeSize(buffer, offset, remainingBytes);
       if (avpSize == 0 || avpSize > remainingBytes) return DecodeStatus.garbage;
 
-      var newAvp = AVP();
+      var newAvp = AVP(Uint8List(avpSize));
       if (!newAvp.decode(buffer, offset, avpSize)) return DecodeStatus.garbage;
 
       newAvps.add(newAvp);
@@ -110,7 +110,9 @@ class Message {
   AVP? find(int code, [int vendorId = 0]) {
     return avps.firstWhere(
       (avp) => avp.code == code && (vendorId == 0 || avp.vendorId == vendorId),
-      orElse: () => null,
+      orElse: () {
+        throw "AVP not fount";
+      },
     );
   }
 

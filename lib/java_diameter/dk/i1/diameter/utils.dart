@@ -1,6 +1,5 @@
-import 'dart:collection';
-
 import 'avp.dart';
+import 'avp_grouped.dart';
 import 'message.dart';
 import 'protocol_constants.dart';
 
@@ -14,50 +13,50 @@ class Utils {
     return list.contains(value);
   }
 
-  static bool setMandatory(
-      AVP avp, List<int> codes, List<int> groupedAvpCodes) {
-    bool modified = false;
-    if (avp.vendorId == 0 && contains(groupedAvpCodes, avp.code)) {
-      try {
-        final AVPGrouped avpGrouped = AVPGrouped(avp);
-        final avpGroupedAVPs = avpGrouped.queryAVPs();
+  // static bool setMandatory(
+  //     AVP avp, List<int> codes, List<int> groupedAvpCodes) {
+  //   bool modified = false;
+  //   if (avp.vendorId == 0 && contains(groupedAvpCodes, avp.code)) {
+  //     try {
+  //       final AVPGrouped avpGrouped = AVPGrouped(avp);
+  //       final avpGroupedAVPs = avpGrouped.queryAVPs();
 
-        for (final avpGAvp in avpGroupedAVPs) {
-          modified = setMandatory(avpGAvp, codes, groupedAvpCodes) || modified;
-        }
+  //       for (final avpGAvp in avpGroupedAVPs) {
+  //         modified = setMandatory(avpGAvp, codes, groupedAvpCodes) || modified;
+  //       }
 
-        bool anyMandatory =
-            avpGroupedAVPs.any((avpGAvp) => avpGAvp.isMandatory);
-        if (anyMandatory && !avp.isMandatory) {
-          avpGrouped.setMandatory(true);
-          modified = true;
-        }
+  //       bool anyMandatory =
+  //           avpGroupedAVPs.any((avpGAvp) => avpGAvp.isMandatory());
+  //       if (anyMandatory && !avp.isMandatory()) {
+  //         avpGrouped.setMandatory(true);
+  //         modified = true;
+  //       }
 
-        if (modified) {
-          avpGrouped.setAVPs(avpGroupedAVPs);
-          avp.inlineShallowReplace(avpGrouped);
-        }
-      } on InvalidAVPLengthException {
-        // Not grouped - ignored
-      }
-    }
+  //       if (modified) {
+  //         avpGrouped.setAVPs(avpGroupedAVPs);
+  //         avp.inlineShallowReplace(avpGrouped);
+  //       }
+  //     } on InvalidAVPLengthException {
+  //       // Not grouped - ignored
+  //     }
+  //   }
 
-    if (!avp.isMandatory) {
-      if (avp.vendorId == 0 && contains(codes, avp.code)) {
-        avp.setMandatory(true);
-        modified = true;
-      }
-    }
+  //   if (!avp.isMandatory()) {
+  //     if (avp.vendorId == 0 && contains(codes, avp.code)) {
+  //       avp.setMandatory(true);
+  //       modified = true;
+  //     }
+  //   }
 
-    return modified;
-  }
+  //   return modified;
+  // }
 
-  static void setMandatory(Iterable<AVP> avps, List<int> codes,
-      [List<int> groupedAvpCodes = emptyArray]) {
-    for (final avp in avps) {
-      setMandatory(avp, codes, groupedAvpCodes);
-    }
-  }
+  // static void setMandatory(Iterable<AVP> avps, List<int> codes,
+  //     [List<int> groupedAvpCodes = emptyArray]) {
+  //   for (final avp in avps) {
+  //     setMandatory(avp, codes, groupedAvpCodes);
+  //   }
+  // }
 
   static void setMandatoryWithCollection(Iterable<AVP> avps, Set<int> codes) {
     for (final avp in avps) {
@@ -69,23 +68,23 @@ class Utils {
 
   static void setMandatoryForMessage(Message msg, List<int> codes,
       [List<int> groupedAvpCodes = emptyArray]) {
-    setMandatory(msg.avps, codes, groupedAvpCodes);
+    //setMandatory(msg.avps, codes, groupedAvpCodes);
   }
 
   static const List<int> rfc3588GroupedAVPs = [
-    ProtocolConstants.diE2eSequenceAVP,
-    ProtocolConstants.diExperimentalResult,
-    ProtocolConstants.diFailedAVP,
-    ProtocolConstants.diProxyInfo,
-    ProtocolConstants.diVendorSpecificApplicationId
+    ProtocolConstants.DI_E2E_SEQUENCE_AVP,
+    ProtocolConstants.DI_EXPERIMENTAL_RESULT,
+    ProtocolConstants.DI_FAILED_AVP,
+    ProtocolConstants.DI_PROXY_INFO,
+    ProtocolConstants.DI_VENDOR_SPECIFIC_APPLICATION_ID
   ];
 
   static const List<int> rfc3588MandatoryCodes = [
     // Add the specific RFC3588 mandatory codes
   ];
 
-  /**The AVP codes of the AVPs listen in RFC3588 section 4.5 that must be mandatory*/
-  static final Set<int> rfc3588_mandatory_codes = {
+  /// The AVP codes of the AVPs listen in RFC3588 section 4.5 that must be mandatory
+  static const List<int> rfc3588_mandatory_codes = [
     ProtocolConstants.DI_ACCOUNTING_REALTIME_REQUIRED,
     ProtocolConstants.DI_ACCOUNTING_RECORD_NUMBER,
     ProtocolConstants.DI_ACCOUNTING_RECORD_TYPE,
@@ -132,20 +131,20 @@ class Utils {
     ProtocolConstants.DI_USER_NAME,
     ProtocolConstants.DI_VENDOR_ID,
     ProtocolConstants.DI_VENDOR_SPECIFIC_APPLICATION_ID
-  };
-  /**List of AVPs that are grouped according to RFC3588 section 4.5
-	 *@since 0.9.5
-	 */
-  static final Set<int> rfc3588_grouped_avps = {
+  ];
+
+  /// List of AVPs that are grouped according to RFC3588 section 4.5
+  ///@since 0.9.5
+  static const List<int> rfc3588_grouped_avps = [
     ProtocolConstants.DI_E2E_SEQUENCE_AVP,
     ProtocolConstants.DI_EXPERIMENTAL_RESULT,
     ProtocolConstants.DI_FAILED_AVP,
     ProtocolConstants.DI_PROXY_INFO,
     ProtocolConstants.DI_VENDOR_SPECIFIC_APPLICATION_ID
-  };
+  ];
 
   static void setMandatoryRFC3588(Iterable<AVP> avps) {
-    setMandatory(avps, rfc3588MandatoryCodes, rfc3588GroupedAVPs);
+    //setMandatory(avps, rfc3588MandatoryCodes, rfc3588GroupedAVPs);
   }
 
   static void setMandatoryRFC3588ForMessage(Message msg) {
@@ -161,7 +160,7 @@ class Utils {
   ];
 
   static void setMandatoryRFC4006(Iterable<AVP> avps) {
-    setMandatory(avps, rfc4006MandatoryCodes, rfc4006GroupedAVPs);
+    // setMandatory(avps, rfc4006MandatoryCodes, rfc4006GroupedAVPs);
   }
 
   static void setMandatoryRFC4006ForMessage(Message msg) {
@@ -169,7 +168,7 @@ class Utils {
   }
 
   static void copyProxyInfo(Message from, Message to) {
-    for (final avp in from.subset(ProtocolConstants.diProxyInfo)) {
+    for (final avp in from.subset(ProtocolConstants.DI_PROXY_INFO)) {
       to.add(AVP.copy(avp));
     }
   }
@@ -178,20 +177,20 @@ class Utils {
 /// Mock AVP class
 
 /// Mock AVPGrouped class
-class AVPGrouped extends AVP {
-  AVPGrouped(AVP avp) : super(avp.code, avp.vendorId, avp.mandatory);
+// class AVPGrouped extends AVP {
+//   AVPGrouped(AVP avp) : super(avp.code, avp.vendorId, avp.mandatory);
 
-  List<AVP> queryAVPs() {
-    // Implementation to return grouped AVPs
-    return [];
-  }
+//   List<AVP> queryAVPs() {
+//     // Implementation to return grouped AVPs
+//     return [];
+//   }
 
-  void setAVPs(List<AVP> avps) {
-    // Implementation to set grouped AVPs
-  }
-}
+//   void setAVPs(List<AVP> avps) {
+//     // Implementation to set grouped AVPs
+//   }
+// }
 
 /// Mock InvalidAVPLengthException class
-class InvalidAVPLengthException implements Exception {}
-
-
+// class InvalidAVPLengthException implements Exception {
+//   InvalidAVPLengthException(AVP a);
+// }

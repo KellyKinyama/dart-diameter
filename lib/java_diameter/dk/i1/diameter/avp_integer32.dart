@@ -1,17 +1,21 @@
 import 'dart:typed_data';
 
 import 'avp.dart';
+import 'avp_unsinged32.dart';
 import 'packunpack.dart';
 import 'utils.dart';
 
+// ignore: camel_case_types
 class AVP_Integer32 extends AVP {
-  AVP_Integer32(AVP a) : super(a) {
+  AVP_Integer32(AVP a) : super(Uint8List(4)) {
     if (a.queryPayloadSize() != 4) {
       throw InvalidAVPLengthException(a);
     }
+    setPayload(a.queryPayload());
   }
 
-  AVP_Integer32.intValue(int code, int value) : super.intValue(code, _intToByte(value));
+  AVP_Integer32.intValue(int code, int value)
+      : super.withPayload(code, Uint8List.fromList(_intToByte(value)));
 
   AVP_Integer32.vendorValue(int code, int vendorId, int value)
       : super.withVendor(code, vendorId, Uint8List.fromList(_intToByte(value)));

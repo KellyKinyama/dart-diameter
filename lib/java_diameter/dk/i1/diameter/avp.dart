@@ -3,7 +3,7 @@ import 'dart:typed_data';
 /// A Diameter AVP as per RFC3588.
 /// Consists of a code, some flags, an optional vendor ID, and a payload.
 class AVP {
-  late Uint8List payload;
+  Uint8List payload;
 
   /// The AVP code
   int code = 0;
@@ -19,7 +19,7 @@ class AVP {
   static const int avpFlagPrivate = 0x20;
 
   /// Default constructor
-  AVP();
+  AVP(this.payload);
 
   /// Copy constructor (deep copy)
   AVP.copy(AVP a)
@@ -31,6 +31,10 @@ class AVP {
   /// Create AVP with code and payload
   AVP.withPayload(this.code, Uint8List payload)
       : payload = Uint8List.fromList(payload);
+
+  // Example constructor with vendor-specific payload
+  // Initialize the AVP with vendor-specific payload here
+  AVP.withVendorPayload(this.code, this.vendorId, this.payload);
 
   /// Create AVP with code, vendor ID, and payload
   AVP.withVendor(this.code, this.vendorId, Uint8List payload)

@@ -1,12 +1,13 @@
 import 'dart:typed_data';
-
 import 'avp.dart';
 
+// ignore: camel_case_types
 class AVP_UTF8String extends AVP {
-  AVP_UTF8String(AVP a) : super(a);
+  AVP_UTF8String(AVP a)
+      : super.copy(a); // Assuming the AVP class has a copy constructor
 
   AVP_UTF8String.intValue(int code, String value)
-      : super.intValue(code, _stringToBytes(value));
+      : super.withPayload(code, Uint8List.fromList(_stringToBytes(value)));
 
   AVP_UTF8String.vendorValue(int code, int vendorId, String value)
       : super.withVendor(
@@ -16,7 +17,7 @@ class AVP_UTF8String extends AVP {
     try {
       return String.fromCharCodes(queryPayload());
     } catch (e) {
-      return null;
+      throw e.toString();
     }
   }
 
