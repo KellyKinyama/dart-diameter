@@ -8,12 +8,15 @@ class DiameterAVP {
   final int vendorId;
   Uint8List _value;
 
+  final String name;
+
   DiameterAVP({
     required this.code,
     required this.flags,
     required this.length,
     required this.vendorId,
     required Uint8List value,
+    this.name = 'DiameterAVP', // Default value
   }) : _value = value;
 
   // Getter for `value`
