@@ -78,6 +78,16 @@ class DiameterAVP {
   //   );
   // }
 
+  // Factory to create a copy from another AVP
+  factory DiameterAVP.fromAVP(DiameterAVP avp) {
+    return DiameterAVP(
+        code: avp.code,
+        flags: avp.flags,
+        length: avp.length,
+        value: avp.value,
+        vendorId: avp.vendorId);
+  }
+
   static DiameterAVP decode(Uint8List data) {
     if (data.length < 8) {
       throw FormatException('Data too short to decode Diameter AVP.');
@@ -217,6 +227,10 @@ class DiameterAVP {
   static DiameterAVP balanceAmountAvp(int value) {
     return DiameterAVP.integerAVP(432, value); // Balance-Amount AVP code
   }
+
+  bool get isMandatory => (flags & 0x40) != 0;
+  bool get isPrivate => (flags & 0x20) != 0;
+  bool get isVendor => (flags & 0x80) != 0;
 
   @override
   String toString() {
