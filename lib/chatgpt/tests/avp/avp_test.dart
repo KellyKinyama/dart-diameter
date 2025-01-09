@@ -20,14 +20,26 @@ void testDecodeFromBytes() {
   ]);
   final a = DiameterAVP.decode(avpBytes);
 
-  assert(a.code == 461);
-  assert(a.isMandatory == true);
-  assert(a.isPrivate == false);
-  assert(a.isVendor == false);
-  assert(a.length == 22);
-  assert(a.value == "32251@3gpp.org");
+  if (a.code != 461) {
+    throw "Expected: 461. Got: ${a.code}";
+  }
+
+  if (a.isMandatory != true) {
+    throw "Expected isMandatory: true. Got: ${a.code}";
+  }
+  if (a.isPrivate != false) {
+    throw "Expected isPrivate: false. Got: ${a.isPrivate}";
+  }
+  if (a.isVendor != false) {
+    throw "Expected isVendor: false. Got: ${a.isVendor}";
+  }
+  if (a.length != 22) {
+    throw "Expected length: 22. Got: ${a.length}";
+  }
+  if (utf8.decode(a.value) != "32251@3gpp.org") {
+    throw "Expected value: true. Got: ${a.value}";
+  }
   print("avp: $a");
-  print("avp code: ${utf8.decode(a.value)}");
 }
 
 void testDecodeFromAVP() {
