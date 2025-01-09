@@ -4,21 +4,30 @@ import 'dart:typed_data';
 class DiameterAVP {
   final int code;
   final int flags;
-  final int length;
+  int length;
   final int vendorId;
-  final Uint8List value;
+  Uint8List _value;
 
   DiameterAVP({
     required this.code,
     required this.flags,
     required this.length,
     required this.vendorId,
-    required this.value,
-  });
+    required Uint8List value,
+  }) : _value = value;
+
+  // Getter for `value`
+  Uint8List get value => _value;
+
+  // Setter for `value`
+  set value(Uint8List newValue) {
+    _value = newValue;
+    length = _value.length + 8; // Update length accordingly
+  }
 
   /// Encode the Diameter AVP into bytes
   Uint8List encode() {
-    final buffer = ByteData(8 + value.length + (flags & 0x80 != 0 ? 4 : 0));
+    final buffer = ByteData(8 + _value.length + (flags & 0x80 != 0 ? 4 : 0));
     buffer.setUint32(0, code, Endian.big);
     buffer.setUint8(4, flags);
     buffer.setUint8(5, (length >> 16) & 0xFF);
@@ -31,12 +40,14 @@ class DiameterAVP {
       offset += 4;
     }
 
-    buffer.buffer.asUint8List().setRange(offset, offset + value.length, value);
+    buffer.buffer
+        .asUint8List()
+        .setRange(offset, offset + _value.length, _value);
 
     // Pad to 4-byte alignment if necessary
     final paddingLength = (4 - (length % 4)) % 4;
     return Uint8List.fromList(
-      buffer.buffer.asUint8List(0, 8 + value.length) +
+      buffer.buffer.asUint8List(0, 8 + _value.length) +
           List<int>.filled(paddingLength, 0),
     );
   }
@@ -84,7 +95,7 @@ class DiameterAVP {
         code: avp.code,
         flags: avp.flags,
         length: avp.length,
-        value: avp.value,
+        value: avp._value,
         vendorId: avp.vendorId);
   }
 
@@ -235,7 +246,7 @@ class DiameterAVP {
   @override
   String toString() {
     // TODO: implement toString
-    return "{code: $code, flags: $flags, length: $length, vendoID: $vendorId, value: $value}";
+    return "{code: $code, flags: $flags, length: $length, vendoID: $vendorId, value: $_value}";
   }
 }
 
@@ -300,10 +311,10 @@ List<DiameterAVP> _decodeGroupedAVP(DiameterAVP groupedAVP) {
   int offset = 0;
 
   // Iterate through the grouped AVP's value, decoding each AVP
-  while (offset < groupedAVP.value.length) {
+  while (offset < groupedAVP._value.length) {
     try {
       // Slice the value data starting from the current offset
-      final remainingBytes = groupedAVP.value.sublist(offset);
+      final remainingBytes = groupedAVP._value.sublist(offset);
 
       // Decode the AVP from the remaining bytes
       final avp = DiameterAVP.decode(Uint8List.fromList(remainingBytes));
