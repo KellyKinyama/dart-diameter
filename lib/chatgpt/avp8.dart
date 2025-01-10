@@ -260,19 +260,40 @@ class DiameterAVP {
 }
 
 void main() {
-  final data = <int>[
-    0, 0, 0, 1, // AVP Code
-    0, 0, 0, 22, // AVP Length
-    0, 0, 0, 64, // AVP Flags
-    51, 50, 50, 53, 49, 64, 51, 103, 112, 112, 46, 111, 114,
-    103, // Example payload (StringAVP)
-  ];
+  // 1. Create DiameterAVPFlags from individual flags
+  final flags = DiameterAVPFlags.fromAvpFlags(
+    isMandatory: true,
+    isPrivate: false,
+    isVendor: false,
+  );
 
+  // 2. Create DiameterAVPHeader using the flags, length, and code
+  final header = DiameterAVPHeader(
+    code: 1, // Example code (could be any valid AVP code)
+    flags: flags,
+    length: 8 + 4, // 8 bytes for header + 4 bytes for IntegerAVP payload
+    vendorId: 0, // Assuming no vendor ID for simplicity
+  );
+
+  // 3. Create IntegerAVP payload (for demonstration, using an integer value)
+  final integerAvp = IntegerAVP(12345); // Example IntegerAVP with value 12345
+
+  // 4. Create the DiameterAVP using the header and payload (IntegerAVP)
+  final diameterAvp = DiameterAVP(
+    header: header,
+    payload: integerAvp,
+  );
+
+  // 5. Encoding the DiameterAVP into bytes
+  final encodedAvp = diameterAvp.encode();
+
+  // 6. Print the encoded byte list
+  print('Encoded DiameterAVP: $encodedAvp');
+
+  // 7. Decode the AVP from the encoded bytes
   try {
-    final avp = DiameterAVP.decode(Uint8List.fromList(data));
-    print('Decoded AVP: ${avp.toString()}');
-    final encodedAvp = avp.encode();
-    print('Encoded AVP (bytes): $encodedAvp');
+    final decodedAvp = DiameterAVP.decode(encodedAvp);
+    print('Decoded DiameterAVP: ${decodedAvp.toString()}');
   } catch (e) {
     print('Error decoding AVP: $e');
   }
