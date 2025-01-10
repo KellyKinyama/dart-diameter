@@ -47,6 +47,24 @@ class DiameterAVPHeader {
     );
   }
 
+  static DiameterAVPHeader fromAvpHeader(DiameterAVPHeader avph) {
+    // Extract the values from the given DiameterAVPHeader instance
+    final code = avph.code;
+    final flags = avph.flags;
+    final length = avph.length;
+    final vendorId = avph.vendorId;
+
+    // Optionally, you can modify or process the header's values here if needed
+    // For now, we'll create a new DiameterAVPHeader using the same values
+
+    return DiameterAVPHeader(
+      code: code,
+      flags: flags,
+      length: length,
+      vendorId: vendorId,
+    );
+  }
+
   // Encode the header to a byte list
   Uint8List encode() {
     final byteData = ByteData(8 + (flags.isVendor ? 4 : 0));
@@ -167,6 +185,20 @@ class DiameterAVP {
       default:
         throw FormatException("Unknown AVP code: ${header.code}");
     }
+
+    return DiameterAVP(
+      header: header,
+      payload: payload,
+    );
+  }
+
+  static DiameterAVP fromAvp(DiameterAVP avp) {
+    // Extract the header and payload from the given DiameterAVP instance
+    final header = avp.header;
+    final payload = avp.payload;
+
+    // Optionally, you can modify or process the header and payload here if needed
+    // For now, we'll create a new DiameterAVP using the same values
 
     return DiameterAVP(
       header: header,
