@@ -9,6 +9,28 @@ class DiameterAVPFlags {
   bool get isMandatory => (flags & 0x40) != 0;
   bool get isPrivate => (flags & 0x20) != 0;
   bool get isVendor => (flags & 0x80) != 0;
+
+  static DiameterAVPFlags fromAvpFlags({
+    required bool isMandatory,
+    required bool isPrivate,
+    required bool isVendor,
+  }) {
+    // Calculate the flags value based on the individual flag properties
+    int flags = 0;
+
+    if (isMandatory) {
+      flags |= 0x40; // Set the 6th bit (0x40) for mandatory
+    }
+    if (isPrivate) {
+      flags |= 0x20; // Set the 5th bit (0x20) for private
+    }
+    if (isVendor) {
+      flags |= 0x80; // Set the 7th bit (0x80) for vendor
+    }
+
+    // Return a new DiameterAVPFlags instance with the computed flags value
+    return DiameterAVPFlags(flags);
+  }
 }
 
 class DiameterAVPHeader {
