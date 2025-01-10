@@ -43,7 +43,26 @@ void testDecodeFromBytes() {
   // if (utf8.decode(a.payload) != "32251@3gpp.org") {
   //   throw "Expected value: true. Got: ${a.payload}";
   // }
+
+  if (a.header.code != 461) throw "Expected 100. Got ${a.header.code}";
+  if (a.header.length != 22) throw "Expected 12. Got ${a.header.length}";
+  if (a.header.flags.isVendor != false) {
+    throw "Expected false. Got ${a.header.flags.isVendor}";
+  }
+  if (a.header.flags.isMandatory != true) {
+    throw "Expected true. Got ${a.header.flags.isMandatory}";
+  }
+  if (a.header.flags.isPrivate != false) {
+    throw "Expected false. Got ${a.header.flags.isPrivate}";
+  }
+  if (a.header.flags.isVendor != false) {
+    throw "Expected false. Got ${a.header.flags.isVendor}";
+  }
   print("avp: $a");
+  print("""
+""");
+  print("Encoded:  ${a.encode()}");
+  print("Expected: $avpBytes");
 }
 
 void testDecodeFromAVP() {
@@ -187,6 +206,10 @@ void testDecodeEncodeHeader() {
   }
   if (header.vendorId != 0) throw "Expected 100. Got ${header.vendorId}";
   print(header);
+  print("""
+""");
+  print("Encoded:  ${header.encode()}");
+  print("Expected: $data");
 }
 
 void testDecodeEncodeHeaderWithVendor() {

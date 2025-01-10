@@ -28,21 +28,16 @@ class DiameterAVPHeader {
   static DiameterAVPHeader decode(Uint8List data) {
     final byteData = ByteData.sublistView(data);
 
-    // Extract header values
     final code = byteData.getInt32(0, Endian.big);
     final flags = DiameterAVPFlags(byteData.getUint8(4));
     final length = (byteData.getUint8(5) << 16) |
         (byteData.getUint8(6) << 8) |
         byteData.getUint8(7);
 
-    // If the 'isVendor' flag is set, decode the vendorId
     int vendorId = 0;
     if (flags.isVendor) {
       vendorId = byteData.getInt32(8, Endian.big);
     }
-
-    print(
-        'Decoded Header: Code: $code, Length: $length, Flags: $flags, Vendor ID: $vendorId');
 
     return DiameterAVPHeader(
       code: code,
@@ -64,16 +59,14 @@ class DiameterAVPHeader {
     int offset = 8;
     if (flags.isVendor) {
       byteData.setInt32(offset, vendorId, Endian.big);
+      offset += 4;
     }
 
     return byteData.buffer.asUint8List();
   }
 
   int getHeaderSize() {
-    return 8 +
-        (flags.isVendor
-            ? 4
-            : 0); // The header size includes vendorId if necessary
+    return 8 + (flags.isVendor ? 4 : 0);
   }
 
   @override
@@ -83,7 +76,7 @@ class DiameterAVPHeader {
 }
 
 abstract class AVP {
-  Uint8List get value; // Getter should return Uint8List for all derived classes
+  Uint8List get value;
 }
 
 class IntegerAVP extends AVP {
@@ -113,11 +106,6 @@ class StringAVP extends AVP {
 
   @override
   Uint8List get value => Uint8List.fromList(utf8.encode(stringValue));
-
-  @override
-  String toString() {
-    return 'StringAVP{value: "$stringValue"}'; // Print the string value
-  }
 }
 
 class GroupedAVP extends AVP {
@@ -129,7 +117,6 @@ class GroupedAVP extends AVP {
     final avps = <DiameterAVP>[];
     int offset = 0;
 
-    // Decoding logic for grouped AVPs
     while (offset < data.length) {
       final avp = DiameterAVP.decode(data.sublist(offset));
       avps.add(avp);
@@ -153,37 +140,30 @@ class DiameterAVP {
     required this.payload,
   });
 
-  // Factory method to create an AVP based on the code
   static DiameterAVP decode(Uint8List data) {
-    // Decode the AVP header first
     final header = DiameterAVPHeader.decode(data);
 
-    // Get the payload length from the header
     final payloadLength = header.length - header.getHeaderSize();
 
-    // Ensure that the payload data doesn't exceed the available range
     if (payloadLength < 0 ||
         header.getHeaderSize() + payloadLength > data.length) {
       throw FormatException('Payload length is out of bounds');
     }
 
-    // Extract the payload from the data
     final payloadData = data.sublist(
         header.getHeaderSize(), header.getHeaderSize() + payloadLength);
 
-    // Based on the AVP code, determine the payload type
     AVP payload;
     switch (header.code) {
-      case 1: // Example code for IntegerAVP
+      case 1:
         payload = IntegerAVP.decode(payloadData);
         break;
-      case 461: // Example code for StringAVP
+      case 461:
         payload = StringAVP.decode(payloadData);
         break;
-      case 3: // Example code for GroupedAVP
+      case 3:
         payload = GroupedAVP.decode(payloadData);
         break;
-      // Add other cases as needed for different AVP types
       default:
         throw FormatException("Unknown AVP code: ${header.code}");
     }
@@ -196,7 +176,27 @@ class DiameterAVP {
 
   Uint8List encode() {
     final headerBytes = header.encode();
-    return Uint8List.fromList(headerBytes + payload.value);
+    final payloadBytes = payload.value;
+
+    // Calculate padding to ensure total length is a multiple of 4 (after header + payload)
+    final totalLength = headerBytes.length + payloadBytes.length;
+    final padding = (4 - totalLength % 4) % 4;
+
+    // Create the final byte list with padding
+    final paddedPayload = Uint8List(payloadBytes.length + padding);
+    paddedPayload.setAll(0, payloadBytes);
+
+    // Adjust the header's length field to reflect the padded size
+    final newHeader = DiameterAVPHeader(
+      code: header.code,
+      flags: header.flags,
+      length: totalLength + padding,
+      vendorId: header.vendorId,
+    );
+
+    final newHeaderBytes = newHeader.encode();
+
+    return Uint8List.fromList(newHeaderBytes + paddedPayload);
   }
 
   @override
@@ -208,14 +208,17 @@ class DiameterAVP {
 void main() {
   final data = <int>[
     0, 0, 0, 1, // AVP Code
-    0, 0, 0, 12, // AVP Length
+    0, 0, 0, 22, // AVP Length
     0, 0, 0, 64, // AVP Flags
-    0, 0, 0, 0, // Example payload (IntegerAVP)
+    51, 50, 50, 53, 49, 64, 51, 103, 112, 112, 46, 111, 114,
+    103, // Example payload (StringAVP)
   ];
 
   try {
     final avp = DiameterAVP.decode(Uint8List.fromList(data));
     print('Decoded AVP: ${avp.toString()}');
+    final encodedAvp = avp.encode();
+    print('Encoded AVP (bytes): $encodedAvp');
   } catch (e) {
     print('Error decoding AVP: $e');
   }
