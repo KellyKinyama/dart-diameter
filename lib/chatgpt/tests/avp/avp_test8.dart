@@ -9,6 +9,7 @@ void main() {
   testDecodeFromBytes();
   //testDecodeFromAVP();
   testDecodeEncodeHeader();
+  testDecodeEncodeHeaderWithVendor();
 }
 
 void testDecodeFromBytes() {
@@ -172,16 +173,49 @@ void testDecodeEncodeHeader() {
   ]);
 
   var header = DiameterAVPHeader.decode(data);
+
+  if (header.code != 100) throw "Expected 100. Got ${header.code}";
+  if (header.length != 12) throw "Expected 12. Got ${header.length}";
+  if (header.flags.isVendor != false) {
+    throw "Expected false. Got ${header.flags.isVendor}";
+  }
+  if (header.flags.isMandatory != true) {
+    throw "Expected true. Got ${header.flags.isMandatory}";
+  }
+  if (header.flags.isPrivate != false) {
+    throw "Expected false. Got ${header.flags.isPrivate}";
+  }
+  if (header.vendorId != 0) throw "Expected 100. Got ${header.vendorId}";
   print(header);
+}
+
+void testDecodeEncodeHeaderWithVendor() {
+  final data = Uint8List.fromList([
+    0x00, 0x00, 0x00, 0x64, // command code
+    0x80, 0x00, 0x00, 0x0C, // flags, length
+    0x00, 0x00, 0x00, 0xC8, // vendor_id
+  ]);
+
+  var header = DiameterAVPHeader.decode(data);
 
   // assert_eq!(header.code, 100);
   // assert_eq!(header.length, 12);
-  // assert_eq!(header.flags.vendor, false);
-  // assert_eq!(header.flags.mandatory, true);
+  // assert_eq!(header.flags.vendor, true);
+  // assert_eq!(header.flags.mandatory, false);
   // assert_eq!(header.flags.private, false);
-  // assert_eq!(header.vendor_id, None);
+  // assert_eq!(header.vendor_id, Some(200));
 
-  // let mut encoded = Vec::new();
-  // header.encode_to(&mut encoded).unwrap();
-  // assert_eq!(encoded, data);
+  if (header.code != 100) throw "Expected 100. Got ${header.code}";
+  if (header.length != 12) throw "Expected 12. Got ${header.length}";
+  if (header.flags.isVendor != true) {
+    throw "Expected true. Got ${header.flags.isVendor}";
+  }
+  if (header.flags.isMandatory != false) {
+    throw "Expected true. Got ${header.flags.isMandatory}";
+  }
+  if (header.flags.isPrivate != false) {
+    throw "Expected false. Got ${header.flags.isPrivate}";
+  }
+  if (header.vendorId != 200) throw "Expected 200. Got ${header.vendorId}";
+  print(header);
 }

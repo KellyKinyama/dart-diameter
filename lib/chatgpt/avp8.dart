@@ -34,9 +34,15 @@ class DiameterAVPHeader {
     final length = (byteData.getUint8(5) << 16) |
         (byteData.getUint8(6) << 8) |
         byteData.getUint8(7);
-    final vendorId = 0; // Assuming no vendorId for simplicity
 
-    print('Decoded Header: Code: $code, Length: $length, Flags: $flags');
+    // If the 'isVendor' flag is set, decode the vendorId
+    int vendorId = 0;
+    if (flags.isVendor) {
+      vendorId = byteData.getInt32(8, Endian.big);
+    }
+
+    print(
+        'Decoded Header: Code: $code, Length: $length, Flags: $flags, Vendor ID: $vendorId');
 
     return DiameterAVPHeader(
       code: code,
@@ -195,7 +201,7 @@ class DiameterAVP {
 
   @override
   String toString() {
-    return 'DiameterAVP{header: ${header.toString()}, payload: ${payload}}';
+    return 'DiameterAVP{header: ${header.toString()}, payload: ${payload.toString()}}';
   }
 }
 
