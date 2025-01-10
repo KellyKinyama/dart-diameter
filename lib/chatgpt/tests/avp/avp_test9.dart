@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import '../../avp8.dart';
+import '../../avp9.dart';
 import '../../avps/address.dart';
 import '../../constants.dart';
 
@@ -242,3 +242,39 @@ void testDecodeEncodeHeaderWithVendor() {
   if (header.vendorId != 200) throw "Expected 200. Got ${header.vendorId}";
   print(header);
 }
+
+
+// void testGroupedAVP() {
+//   // Create embedded AVPs
+//   final avp1 = DiameterAVP(
+//     header: DiameterAVPHeader(
+//       code: 1,
+//       flags: DiameterAVPFlags.fromAvpFlags(isMandatory: true, isPrivate: false, isVendor: false),
+//       length: 12,
+//     ),
+//     payload: Uint8List.fromList(utf8.encode('test1')),
+//   );
+
+//   final avp2 = DiameterAVP(
+//     header: DiameterAVPHeader(
+//       code: 2,
+//       flags: DiameterAVPFlags.fromAvpFlags(isMandatory: true, isPrivate: false, isVendor: false),
+//       length: 12,
+//     ),
+//     payload: Uint8List.fromList(utf8.encode('test2')),
+//   );
+
+//   // Create a GroupedAVP containing the above AVPs
+//   final groupedAVP = GroupedAVP([avp1, avp2]);
+
+//   // Encode the GroupedAVP
+//   final encodedGroupedAVP = groupedAVP.encodeTo();
+//   print('Encoded GroupedAVP: $encodedGroupedAVP');
+
+//   // Decode the GroupedAVP
+//   final decodedGroupedAVP = GroupedAVP.decodeFrom(Uint8List.fromList(encodedGroupedAVP));
+//   print('Decoded GroupedAVP contains ${decodedGroupedAVP.avps.length} AVPs:');
+//   for (var avp in decodedGroupedAVP.avps) {
+//     print(' - AVP Code: ${avp.header.code}, Value: ${utf8.decode(avp.payload)}');
+//   }
+// }

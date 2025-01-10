@@ -1,93 +1,65 @@
 import 'dart:typed_data';
+import 'dart:convert';
 
-import 'avp.dart';
+// Define the base AVP class
+abstract class AVP {
+  Uint8List get value; // Getter should return Uint8List for all derived classes
+}
 
-class AvpGrouped extends DiameterAVP {
-  AvpGrouped({
-    required int code,
-    required int flags,
-    required int length,
-    required int vendorId,
-    required List<DiameterAVP> avps,
-  }) : super(
-          code: code,
-          flags: flags,
-          length: length,
-          vendorId: vendorId,
-          value: _encodeAvps(avps),
-        );
 
-  // Static method to encode a list of AVPs into a grouped value
-  static Uint8List _encodeAvps(List<DiameterAVP> avps) {
-    final buffer = <int>[];
-    final packer = Packer();
+class GroupedAVP extends AVP {
+  final List<AVP> avps;
 
-    for (var avp in avps) {
-      avp.asPacked(packer); // Pack each AVP
+  GroupedAVP(this.avps);
+
+  // Decode a GroupedAVP from a list of bytes
+  static GroupedAVP decode(Uint8List bytes) {
+    final avps = <AVP>[];
+    int offset = 0;
+
+    while (offset < bytes.length) {
+      // Assuming each AVP has a fixed length for simplicity
+      // You may need to adjust this based on your actual AVP structure
+      final length = 4; // Example fixed length, replace with actual logic
+      final avpBytes = bytes.sublist(offset, offset + length);
+      final avp = Enumerated.decode(avpBytes); // Replace with actual decoding logic
+      avps.add(avp);
+      offset += length;
     }
 
-    return packer.getBuffer(); // Return the packed byte buffer
+    return GroupedAVP(avps);
   }
 
-  // Getter for `value` as a list of AVPs
-  List<DiameterAVP> get value {
-    if (!_avps.isEmpty) {
-      return _avps;
+  // Encode the GroupedAVP to a list of bytes
+  Uint8List encodeTo() {
+    final bytes = <int>[];
+    for (final avp in avps) {
+      bytes.addAll(avp.value);
     }
-
-    final unpacker = Unpacker(this._value);
-    final avps = <DiameterAVP>[];
-
-    while (!unpacker.isDone()) {
-      try {
-        avps.add(DiameterAVP.decode(unpacker.next())); // Decode each AVP
-      } catch (e) {
-        throw AvpDecodeError(
-          "Grouped AVP value is invalid: ${e.toString()}",
-        );
-      }
-    }
-
-    _avps = avps; // Cache the decoded AVPs
-    return avps;
-  }
-
-  // Cached list of AVPs for value
-  List<DiameterAVP> _avps = [];
-
-  // Setter for `value` with a list of AVPs
-  set value(List<DiameterAVP> avps) {
-    _avps = avps;
-    final packedAvps = _encodeAvps(avps);
-    this._value = packedAvps;
-    this.length = 8 + packedAvps.length;
+    return Uint8List.fromList(bytes);
   }
 
   @override
+  Uint8List get value => encodeTo();
+
+  @override
   String toString() {
-    return 'AvpGrouped{code: $code, flags: $flags, length: $length, vendorId: $vendorId, value: $_avps}';
+    return avps.toString();
   }
 }
 
-class Unpacker {
-  final List<int> _buffer;
-  int _offset = 0;
+void main() {
+  // Example usage for encoding and decoding GroupedAVP
 
-  Unpacker(this._buffer);
+  final avp1 = Enumerated.fromInt(1);
+  final avp2 = Enumerated.fromInt(2);
+  final groupedAVP = GroupedAVP([avp1, avp2]);
 
-  bool isDone() => _offset >= _buffer.length;
+  // Encode to byte array
+  final encoded = groupedAVP.encodeTo();
+  print('Encoded GroupedAVP: $encoded');
 
-  List<int> next() {
-    // Implement logic to extract the next AVP or data chunk from the buffer.
-    // This is a dummy implementation.
-    final nextAVPLength = 4; // Example length of each AVP
-    final result = _buffer.sublist(_offset, _offset + nextAVPLength);
-    _offset += nextAVPLength;
-    return result;
-  }
-}
-
-class AvpDecodeError implements Exception {
-  final String message;
-  AvpDecodeError(this.message);
+  // Decode from byte array
+  final decoded = GroupedAVP.decode(Uint8List.fromList(encoded));
+  print('Decoded GroupedAVP: ${decoded.toString()}');
 }

@@ -1,141 +1,197 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
-import '../avp.dart';
+import '../avp8.dart';
 
-class AvpAddress extends DiameterAVP {
-  AvpAddress({
-    required int code,
-    int flags = 0,
-    int vendorId = 0,
-  }) : super(
-          code: code,
-          flags: flags,
-          length: 8, // Default length for AVP header
-          vendorId: vendorId,
-          value: Uint8List(0), // Initialize with an empty value
-        );
+// Define the base AVP class
 
-  // Getter for parsed value
-  Tuple<int, String> get parsedValue {
-    if (value.isEmpty) {
-      throw Exception("No payload available for decoding.");
-    }
+abstract class AddressAVP extends AVP {
+  final AddressValue addressValue;
 
-    final family = ByteData.sublistView(value, 0, 2).getUint16(0, Endian.big);
-    final payload = value.sublist(2);
+  AddressAVP(this.addressValue);
 
-    switch (family) {
-      case 1: // IPv4
-        return Tuple(family, _decodeIPv4(payload));
-      case 2: // IPv6
-        return Tuple(family, _decodeIPv6(payload));
-      case 8: // E.164
-        return Tuple(family, utf8.decode(payload));
-      default:
-        throw Exception("Unsupported address family: $family");
-    }
+  // Create new AddressAVP instances for each type
+  factory AddressAVP.fromIPv4(InternetAddress ip) {
+    return IPv4AVP(ip);
   }
 
-  // Custom method to set the value
-  void setValue(String newValue) {
-    int family;
-    Uint8List encodedPayload;
+  factory AddressAVP.fromIPv6(InternetAddress ip) {
+    return IPv6AVP(ip);
+  }
 
-    if (RegExp(r'^(\d{1,3}\.){3}\d{1,3}$').hasMatch(newValue)) {
-      // IPv4
-      family = 1;
-      encodedPayload = _encodeIPv4(newValue);
-    } else if (RegExp(r'^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$')
-        .hasMatch(newValue)) {
-      // IPv6
-      family = 2;
-      encodedPayload = _encodeIPv6(newValue);
+  factory AddressAVP.fromE164(String str) {
+    return E164AVP(str);
+  }
+
+  static AddressAVP decodeFrom(Uint8List bytes, int len) {
+    final b = bytes.sublist(0, 2); // First two bytes for address type
+
+    final addressValue = _decodeAddress(b, bytes.sublist(2), len);
+    if (addressValue is IPv4) {
+      return IPv4AVP(addressValue.ip);
+    } else if (addressValue is IPv6) {
+      return IPv6AVP(addressValue.ip);
+    } else if (addressValue is E164) {
+      return E164AVP(addressValue.str);
     } else {
-      // Default to E.164
-      family = 8;
-      encodedPayload = utf8.encode(newValue);
+      throw FormatException('Unsupported address type');
     }
-
-    final buffer = BytesBuilder();
-    buffer.add(
-        Uint8List(2)..buffer.asByteData().setUint16(0, family, Endian.big));
-    buffer.add(encodedPayload);
-
-    super.value = buffer.toBytes(); // Use the inherited setter for `value`
-    length = value.length + 8; // Update AVP length
   }
 
-  // Helper to encode IPv4 address
-  Uint8List _encodeIPv4(String address) {
-    final parts = address.split('.').map(int.parse).toList();
-    if (parts.length != 4 || parts.any((part) => part < 0 || part > 255)) {
-      throw Exception("Invalid IPv4 address: $address");
+  static AddressValue _decodeAddress(
+      List<int> b, List<int> remainingBytes, int len) {
+    if (b[0] == 0 && b[1] == 1) {
+      // IPv4 address
+      if (len != 6) {
+        throw FormatException('Invalid IPv4 address length');
+      }
+      final ipBytes = remainingBytes.sublist(0, 4); // First 4 bytes for IPv4
+      final ip = InternetAddress(ipBytes.join('.'));
+      return IPv4(ip);
+    } else if (b[0] == 0 && b[1] == 2) {
+      // IPv6 address
+      if (len != 18) {
+        throw FormatException('Invalid IPv6 address length');
+      }
+      if (remainingBytes.length < 16) {
+        throw FormatException('Invalid IPv6 address bytes');
+      }
+      final ipBytes = remainingBytes.sublist(0, 16); // First 16 bytes for IPv6
+      final ip = InternetAddress.fromRawAddress(Uint8List.fromList(ipBytes));
+      return IPv6(ip);
+    } else if (b[0] == 0 && b[1] == 8) {
+      // E.164 address
+      if (len > 17 || len < 3) {
+        throw FormatException('Invalid E.164 address length');
+      }
+      final strBytes =
+          remainingBytes.sublist(0, len - 2); // Ensure valid length
+      final str = String.fromCharCodes(strBytes);
+      return E164(str);
+    } else {
+      throw FormatException('Unsupported address type');
     }
-    return Uint8List.fromList(parts);
   }
 
-  // Helper to encode IPv6 address
-  Uint8List _encodeIPv6(String address) {
-    final parts = address.split(':');
-    if (parts.length != 8) {
-      throw Exception("Invalid IPv6 address: $address");
+  // Encode the AddressAVP to a byte array
+  List<int> encodeTo() {
+    final bytes = <int>[];
+
+    if (addressValue is IPv4) {
+      bytes.addAll([0, 1]);
+      final ip = (addressValue as IPv4).ip;
+      bytes.addAll(ip.address.codeUnits);
+    } else if (addressValue is IPv6) {
+      bytes.addAll([0, 2]);
+      final ip = (addressValue as IPv6).ip;
+      bytes.addAll(ip.rawAddress);
+    } else if (addressValue is E164) {
+      bytes.addAll([0, 8]);
+      final str = (addressValue as E164).str;
+      bytes.addAll(str.codeUnits);
     }
 
-    final buffer = BytesBuilder();
-    for (var part in parts) {
-      final value = int.parse(part, radix: 16);
-      final bytes = Uint8List(2);
-      bytes.buffer.asByteData().setUint16(0, value, Endian.big);
-      buffer.add(bytes);
-    }
-
-    return buffer.toBytes();
+    return bytes;
   }
 
-  // Helper to decode IPv4 address
-  String _decodeIPv4(Uint8List payload) {
-    if (payload.length != 4) {
-      throw Exception("Invalid IPv4 payload length: ${payload.length}");
-    }
-    return payload.map((byte) => byte.toString()).join('.');
-  }
-
-  // Helper to decode IPv6 address
-  String _decodeIPv6(Uint8List payload) {
-    if (payload.length != 16) {
-      throw Exception("Invalid IPv6 payload length: ${payload.length}");
-    }
-    final segments = <String>[];
-    for (int i = 0; i < payload.length; i += 2) {
-      final segment = payload.buffer.asByteData().getUint16(i, Endian.big);
-      segments.add(segment.toRadixString(16));
-    }
-    return segments.join(':');
+  @override
+  String toString() {
+    return addressValue.toString();
   }
 }
 
-// Utility class to hold a tuple of two values
-class Tuple<T1, T2> {
-  final T1 item1;
-  final T2 item2;
+class IPv4AVP extends AddressAVP {
+  IPv4AVP(InternetAddress ip) : super(IPv4(ip));
 
-  Tuple(this.item1, this.item2);
+  @override
+  Uint8List get value {
+    final ip = (addressValue as IPv4).ip;
+    return Uint8List.fromList(ip.address.codeUnits);
+  }
+}
+
+class IPv6AVP extends AddressAVP {
+  IPv6AVP(InternetAddress ip) : super(IPv6(ip));
+
+  @override
+  Uint8List get value {
+    final ip = (addressValue as IPv6).ip;
+    return ip.rawAddress;
+  }
+}
+
+class E164AVP extends AddressAVP {
+  E164AVP(String str) : super(E164(str));
+
+  @override
+  Uint8List get value {
+    final str = (addressValue as E164).str;
+    return Uint8List.fromList(str.codeUnits);
+  }
+}
+
+// Define the AddressValue class and its subclasses
+abstract class AddressValue {}
+
+class IPv4 extends AddressValue {
+  final InternetAddress ip;
+  IPv4(this.ip);
+
+  @override
+  String toString() {
+    return ip.address;
+  }
+}
+
+class IPv6 extends AddressValue {
+  final InternetAddress ip;
+  IPv6(this.ip);
+
+  @override
+  String toString() {
+    return ip.address;
+  }
+}
+
+class E164 extends AddressValue {
+  final String str;
+  E164(this.str);
+
+  @override
+  String toString() {
+    return str;
+  }
 }
 
 void main() {
-  final avpAddress = AvpAddress(code: 123);
+  // Example usage for encoding and decoding addresses
 
-  // Set and get IPv4 address
-  avpAddress.setValue("193.16.219.96");
-  print(avpAddress.parsedValue); // Output: Tuple(1, "193.16.219.96")
+  final ipv4Addr = InternetAddress('127.0.0.1');
+  final ipv6Addr = InternetAddress('::1');
+  final e164Addr = "359898000135";
 
-  // Set and get IPv6 address
-  avpAddress.setValue("8b71:8c8a:1e29:716a:6184:7966:fd43:4200");
-  print(avpAddress
-      .parsedValue); // Output: Tuple(2, "8b71:8c8a:1e29:716a:6184:7966:fd43:4200")
+  final ipv4AVP = AddressAVP.fromIPv4(ipv4Addr);
+  final ipv6AVP = AddressAVP.fromIPv6(ipv6Addr);
+  final e164AVP = AddressAVP.fromE164(e164Addr);
 
-  // Set and get E.164 address
-  avpAddress.setValue("48507909008");
-  print(avpAddress.parsedValue); // Output: Tuple(8, "48507909008")
+  // Encode to byte arrays
+  final encodedIpv4 = ipv4AVP.encodeTo();
+  final encodedIpv6 = ipv6AVP.encodeTo();
+  final encodedE164 = e164AVP.encodeTo();
+
+  print('Encoded IPv4 AVP: $encodedIpv4');
+  print('Encoded IPv6 AVP: $encodedIpv6');
+  print('Encoded E164 AVP: $encodedE164');
+
+  // Decode from byte arrays
+  final decodedIpv4 = AddressAVP.decodeFrom(Uint8List.fromList(encodedIpv4), 6);
+  final decodedIpv6 =
+      AddressAVP.decodeFrom(Uint8List.fromList(encodedIpv6), 18);
+  final decodedE164 =
+      AddressAVP.decodeFrom(Uint8List.fromList(encodedE164), 14);
+
+  print('Decoded IPv4 AVP: ${decodedIpv4.toString()}');
+  print('Decoded IPv6 AVP: ${decodedIpv6.toString()}');
+  print('Decoded E164 AVP: ${decodedE164.toString()}');
 }
