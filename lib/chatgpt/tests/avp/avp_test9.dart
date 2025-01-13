@@ -6,10 +6,11 @@ import '../../avps/address.dart';
 import '../../constants.dart';
 
 void main() {
-  testDecodeFromBytes();
+  //testDecodeFromBytes();
   //testDecodeFromAVP();
-  testDecodeEncodeHeader();
-  testDecodeEncodeHeaderWithVendor();
+  //testDecodeEncodeHeader();
+  //testDecodeEncodeHeaderWithVendor();
+  testGroupedAVP();
 }
 
 void testDecodeFromBytes() {
@@ -242,6 +243,74 @@ void testDecodeEncodeHeaderWithVendor() {
   if (header.vendorId != 200) throw "Expected 200. Got ${header.vendorId}";
   print(header);
 }
+
+// void testGroupedAVP() {
+//   Uint8List data = Uint8List.fromList([
+//     0x68,
+//     0x65,
+//     0x6c,
+//     0x6c,
+//     0x6f,
+//     0x2c,
+//     0x20,
+//     0x77,
+//     0x6f,
+//     0x72,
+//     0x6c,
+//     0x64,
+//   ]);
+//   var gAvp = GroupedAVP.decode(data);
+//   print("Grouped avp: $gAvp");
+// }
+
+void testGroupedAVP() {
+  // Create nested AVPs
+  final innerAvp1 = DiameterAVP(
+    header: DiameterAVPHeader(
+      code: 1,
+      flags: DiameterAVPFlags.fromAvpFlags(
+        isMandatory: true,
+        isPrivate: false,
+        isVendor: false,
+      ),
+      length: 12,
+    ),
+    payload: IntegerAVP(12345),
+  );
+
+  final innerAvp2 = DiameterAVP(
+    header: DiameterAVPHeader(
+      code: 461,
+      flags: DiameterAVPFlags.fromAvpFlags(
+        isMandatory: true,
+        isPrivate: false,
+        isVendor: false,
+      ),
+      length: 16,
+    ),
+    payload: StringAVP("test"),
+  );
+
+  // Create a GroupedAVP
+  final groupedAvp = GroupedAVP([innerAvp1, innerAvp2]);
+
+  // Encode the GroupedAVP
+  final groupedAvpData = groupedAvp.value;
+
+  // Debugging: Print the raw bytes of the GroupedAVP
+  print('Encoded GroupedAVP data: $groupedAvpData');
+
+  // Decode the GroupedAVP
+  try {
+    final decodedGroupedAvp = GroupedAVP.decode(groupedAvpData);
+    print("Decoded GroupedAVP: $decodedGroupedAvp");
+  } catch (e, stackTrace) {
+    print("Error decoding GroupedAVP: $e");
+    print("Stack trace: $stackTrace");
+  }
+}
+
+
 
 
 // void testGroupedAVP() {

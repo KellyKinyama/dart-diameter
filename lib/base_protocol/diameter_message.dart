@@ -44,6 +44,7 @@ class DiameterMessage {
 
   /// Decode a Diameter message from bytes
   static DiameterMessage decode(Uint8List data) {
+    print("Received: $data");
     if (data.length < 20) {
       throw FormatException('Data too short to decode Diameter message.');
     }

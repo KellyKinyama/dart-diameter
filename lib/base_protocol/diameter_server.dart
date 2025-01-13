@@ -42,8 +42,9 @@ class DiameterServer {
           } else {
             print('Unsupported Command Code: ${request.commandCode}');
           }
-        } catch (e) {
+        } catch (e, stacktrace) {
           print('Failed to decode message: $e');
+          print('Stack trace: $stacktrace');
         }
       });
     });
