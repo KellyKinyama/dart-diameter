@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 //import '../base_protocol/diameter_clent.dart';
 import '../applications/capabilities_exchange_request2.dart';
-import '../diameter_message7.dart';
+import '../diameter_message11.dart';
 
 Uint8List message() {
   // final diameterMessage = DiameterMessage(
@@ -65,8 +65,8 @@ Uint8List message() {
   // final encodedMessage = diameterMessage.encode();
   // print('Encoded Diameter Message: ${encodedMessage}');
   // return encodedMessage;
-  var decodedDM = DiameterMessage.decode(cert_test);
-  var decodedCER = CapabilitiesExchangeRequest.decode(cert_test);
+  var decodedDM = DiameterMessage.decode(cer_test);
+  var decodedCER = CapabilitiesExchangeRequest.decode(cer_test);
   print(decodedCER);
 
   // return decodedDM.encode();
@@ -101,8 +101,9 @@ class DiameterClient {
     // Encode the CapabilitiesExchangeRequest
     //final encodedMessage = cerRequest.encode();
     socket.listen((data) {
-      print("Receive data: $data");
-      //final response = DiameterMessage.decode(data);
+      //print("Receive data: $data");
+      final response = DiameterMessage.decode(data);
+      print("Receive data: $response");
       //print('Received response with Command Code: ${response.commandCode}');
       socket.destroy();
     });
@@ -275,3 +276,42 @@ final cer = Uint8List.fromList([
   0,
   4
 ]);
+
+
+// Receive data: Diameter Message:
+//   Version: 1
+//   Length: 160
+//   Flags: 0
+//   Command Code: 257
+//   Application ID: 0
+//   Hop-by-Hop ID: 1470542647
+//   End-to-End ID: 4122139619
+//   AVPs:
+//     AVP(Code: 263, Flags: 64, Length: 18, Value: [49, 51, 52, 57, 51, 52, 56, 53, 57, 57])
+//     AVP(Code: 268, Flags: 64, Length: 12, Value: [0, 0, 7, 209])
+//     AVP(Code: 264, Flags: 96, Length: 16, Value: [116, 101, 115, 116, 46, 99, 111, 109])
+//     AVP(Code: 296, Flags: 64, Length: 11, Value: [99, 111, 109])
+//     AVP(Code: 257, Flags: 96, Length: 26, Value: [0, 2, 32, 1, 13, 184, 51, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+//     AVP(Code: 257, Flags: 96, Length: 14, Value: [0, 1, 1, 2, 3, 4])
+//     AVP(Code: 266, Flags: 96, Length: 12, Value: [0, 0, 0, 123])
+//     AVP(Code: 269, Flags: 0, Length: 21, Value: [110, 111, 100, 101, 45, 100, 105, 97, 109, 101, 116, 101, 114])
+
+
+
+// Receive data: Diameter Message:
+//   Version: 1
+//   Length: 160
+//   Flags: 0
+//   Command Code: 257
+//   Application ID: 0
+//   Hop-by-Hop ID: 1470542647
+//   End-to-End ID: 4122139619
+//   AVPs:
+//     AVP(Code: 263, Flags: 64, Length: 18, Value: [49, 51, 52, 57, 51, 52, 56, 53, 57, 57])
+//     AVP(Code: 268, Flags: 64, Length: 12, Value: [0, 0, 7, 209])
+//     AVP(Code: 264, Flags: 96, Length: 16, Value: [116, 101, 115, 116, 46, 99, 111, 109])
+//     AVP(Code: 296, Flags: 64, Length: 11, Value: [99, 111, 109])
+//     AVP(Code: 257, Flags: 96, Length: 26, Value: [0, 2, 32, 1, 13, 184, 51, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+//     AVP(Code: 257, Flags: 96, Length: 14, Value: [0, 1, 1, 2, 3, 4])
+//     AVP(Code: 266, Flags: 96, Length: 12, Value: [0, 0, 0, 123])
+//     AVP(Code: 269, Flags: 0, Length: 21, Value: [110, 111, 100, 101, 45, 100, 105, 97, 109, 101, 116, 101, 114])

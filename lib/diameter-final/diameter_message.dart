@@ -38,22 +38,81 @@ class DiameterMessage {
   // Factory constructor to create a DiameterMessage from a structured object
   factory DiameterMessage.fromFields(
       {required int version,
-      required int length,
+      //  required int length,
       required int flags,
       required int commandCode,
       required int applicationId,
       required int hopByHopId,
       required int endToEndId,
-      required List<AVP> apvs}) {
+      required List<AVP> avpList}) {
+    // int totalLength = 20; // Base header size: 20 bytes
+    int totalLength = 0; // Base header size: 20 bytes
+    final buffer = BytesBuilder();
+
+    // Header fields
+    buffer.addByte(version); // Version
+    totalLength++;
+
+    buffer.add([0, 0, 0]); // Placeholder for length (3 bytes)
+    totalLength += 3;
+
+    buffer.addByte(flags); // Flags
+    totalLength++;
+
+    buffer.add([
+      (commandCode >> 16) & 0xFF,
+      (commandCode >> 8) & 0xFF,
+      commandCode & 0xFF
+    ]);
+    totalLength += 3;
+
+    buffer.add([
+      (applicationId >> 24) & 0xFF,
+      (applicationId >> 16) & 0xFF,
+      (applicationId >> 8) & 0xFF,
+      applicationId & 0xFF
+    ]);
+    totalLength += 4;
+
+    buffer.add([
+      (hopByHopId >> 24) & 0xFF,
+      (hopByHopId >> 16) & 0xFF,
+      (hopByHopId >> 8) & 0xFF,
+      hopByHopId & 0xFF
+    ]);
+    totalLength += 4;
+
+    buffer.add([
+      (endToEndId >> 24) & 0xFF,
+      (endToEndId >> 16) & 0xFF,
+      (endToEndId >> 8) & 0xFF,
+      endToEndId & 0xFF,
+    ]);
+    totalLength += 4;
+
+    // Add AVPs
+    for (final avp in avpList) {
+      final encodedAvp = avp.encode();
+      buffer.add(encodedAvp);
+      totalLength += encodedAvp.length;
+    }
+
+    // Update totalLength in the buffer
+    final byteArray = buffer.toBytes();
+    byteArray[1] = (totalLength >> 16) & 0xFF;
+    byteArray[2] = (totalLength >> 8) & 0xFF;
+    byteArray[3] = totalLength & 0xFF;
+
     return DiameterMessage(
-        version: version,
-        length: length,
-        flags: flags,
-        commandCode: commandCode,
-        applicationId: applicationId,
-        hopByHopId: hopByHopId,
-        endToEndId: endToEndId,
-        avps: apvs);
+      version: version,
+      length: totalLength,
+      flags: flags,
+      commandCode: commandCode,
+      applicationId: applicationId,
+      hopByHopId: hopByHopId,
+      endToEndId: endToEndId,
+      avps: avpList,
+    );
   }
 
   // Decode Diameter message from raw data
@@ -248,6 +307,56 @@ class AVP {
     //         .getUint32(0)), // Auth-Application-Id
   };
 
+  // Registry of AVP decoders
+  static final Map<int, AVP Function(int, int, int, List<int>)> _avpEncoders = {
+    263: (code, flags, length, data) =>
+        AVP(code, flags, length, String.fromCharCodes(data)), // Session-Id
+    264: (code, flags, length, data) =>
+        AVP(code, flags, length, String.fromCharCodes(data)), // Origin-Host
+    296: (code, flags, length, data) =>
+        AVP(code, flags, length, String.fromCharCodes(data)), // Vendor-Specific
+    266: (code, flags, length, data) => AVP(
+        code,
+        flags,
+        length,
+        ByteData.sublistView(Uint8List.fromList(data))
+            .getUint32(0, Endian.big)), // Vendor-Id
+    268: (code, flags, length, data) => AVP(
+        code,
+        flags,
+        length,
+        ByteData.sublistView(Uint8List.fromList(data))
+            .getUint32(0, Endian.big)), // Result-Code
+    257: (code, flags, length, data) => AVP(code, flags, length, data), // Raw
+    269: (code, flags, length, data) =>
+        AVP(code, flags, length, String.fromCharCodes(data)), // Node-Name
+
+    265: (code, flags, length, data) => AVP(
+        code,
+        flags,
+        length,
+        ByteData.sublistView(Uint8List.fromList(data))
+            .getUint32(0, Endian.big)), // Vendor-Id
+
+    //       263: (bytes) => String.fromCharCodes(bytes), // Session-Id
+    // 264: (bytes) => String.fromCharCodes(bytes), // Origin-Host
+    //296: (bytes) => String.fromCharCodes(bytes), // Origin-Realm
+    // 266: (bytes) => ByteData.sublistView(bytes).getUint32(0), // Vendor-Id
+    278: (code, flags, length, data) => AVP(
+        code,
+        flags,
+        length,
+        ByteData.sublistView(Uint8List.fromList(data))
+            .getUint32(0)), // Experimental-Result
+    //265: (bytes) => ByteData.sublistView(bytes).getUint32(0), // Supported-Vendor-Id
+    258: (code, flags, length, data) => AVP(
+        code,
+        flags,
+        length,
+        ByteData.sublistView(Uint8List.fromList(data))
+            .getUint32(0)), // Auth-Application-Id
+  };
+
   static AVP decode(int code, int flags, int length, List<int> data) {
     // Look up the decoder in the registry
     final decoder = _avpDecoders[code];
@@ -290,6 +399,49 @@ class AVP {
       return bytes.buffer.asUint8List();
     } else if (value is List<int>) {
       return Uint8List.fromList(value);
+    } else if (value is List<dynamic>) {
+      // If value is a List<dynamic>, we need to convert it into a List<int>
+      final bytes = <int>[];
+      for (var item in value) {
+        if (item is int) {
+          bytes.add(item);
+        } else if (item is String) {
+          bytes.addAll(item.codeUnits);
+        } else {
+          throw UnsupportedError("Unsupported AVP value type in List<dynamic>");
+        }
+      }
+      return Uint8List.fromList(bytes);
+    }
+    {
+      throw UnsupportedError(
+          "Unsupported AVP value type: ${value.runtimeType}");
+    }
+  }
+
+  // Encodes the AVP value to bytes
+  Uint8List encodeValue() {
+    if (value is String) {
+      return Uint8List.fromList(value.codeUnits); // String to byte list
+    } else if (value is int) {
+      final bytes = ByteData(4);
+      bytes.setUint32(0, value, Endian.big); // Encode int as 4 bytes
+      return bytes.buffer.asUint8List();
+    } else if (value is List<int>) {
+      return Uint8List.fromList(value); // Raw byte list
+    } else if (value is List<dynamic>) {
+      // If value is a List<dynamic>, we need to convert it into a List<int>
+      final bytes = <int>[];
+      for (var item in value) {
+        if (item is int) {
+          bytes.add(item);
+        } else if (item is String) {
+          bytes.addAll(item.codeUnits);
+        } else {
+          throw UnsupportedError("Unsupported AVP value type in List<dynamic>");
+        }
+      }
+      return Uint8List.fromList(bytes);
     } else {
       throw UnsupportedError("Unsupported AVP value type");
     }
