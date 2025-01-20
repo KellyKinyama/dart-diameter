@@ -179,6 +179,21 @@ class DiameterClient {
 
     socket.add(encodedMsg);
   }
+
+  void sendRequestWithMessage(DiameterMessage message) async {
+    final socket = await Socket.connect(host, port);
+    print('Connected to Diameter Server');
+    socket.listen((data) {
+      final response = DiameterMessage.decode(data);
+      print('Received response with Command Code: ${response.commandCode}');
+      print("CCA: ${response}");
+      // Handle responses here
+    });
+
+    final encodedMessage = message.encode();
+    // print('Sending Diameter Message: $encodedMessage');
+    socket.add(encodedMessage);
+  }
 }
 
 // void capabilitiesExchangeRequest() {
